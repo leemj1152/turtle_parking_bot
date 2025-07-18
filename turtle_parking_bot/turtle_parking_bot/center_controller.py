@@ -1,8 +1,8 @@
 from parking_bot_interfaces.msg import EmptySpots  # ✅ 메시지 타입
-
+import time
 import rclpy
 from rclpy.node import Node
-from turtle_parking_bot.emqx.emqx_pub import connect_mqtt, publish
+import turtle_parking_bot.emqx.emqx_pub as emqx_pub
 
 
 class CenterController(Node):
@@ -11,13 +11,14 @@ class CenterController(Node):
 
         self.subscription = self.create_subscription(
             EmptySpots,                             # ✅ 메시지 타입 수정
-            '/parking/empty_spot_id',               # ✅ 해당 토픽에서 메시지 수신
+            '/parking/empty_spots_msg',               # ✅ 해당 토픽에서 메시지 수신
             self.spot_callback,
             10
         )
 
-        self.mqtt_client = connect_mqtt()
-        self.mqtt_client.loop_start()
+        self.mqtt_client = emqx_pub.connect_mqtt()
+        self.client.loop_start()
+        # self.mqtt_client.loop_start()
 
         self.get_logger().info("CenterController Node started. Listening to /parking/empty_spot_id")
 
@@ -36,9 +37,24 @@ class CenterController(Node):
                 "zone_id": zone_id,
                 "type": "start"
             }
-            publish(self.mqtt_client, payload)
-            self.get_logger().info(f"MQTT 발송 → robot{robot_id}: {payload}")
 
+  
+            self.client = emqx_pub.connect_mqtt()
+            
+            
+            message = {
+                "robot_id": "turtlebot4",
+                "status": "arrived",
+                "timestamp": int(time.time())
+            }
+
+            emqx_pub.publish(self.client,message)
+            # time.sleep(2)
+            # self.client.loop_stop()
+            # publish(self.mqtt_client, payload)
+            # self.get_logger().info(f"MQTT 발송 → robot{robot_id}: {payload}")
+    def end_node(self):
+        self.client.loop_stop()     
 
 def main(args=None):
     rclpy.init(args=args)
@@ -48,9 +64,10 @@ def main(args=None):
     except KeyboardInterrupt:
         node.get_logger().info("종료 요청 수신")
     finally:
+        node.end_node()
         node.destroy_node()
         rclpy.shutdown()
-
+        
 
 if __name__ == '__main__':
     main()
