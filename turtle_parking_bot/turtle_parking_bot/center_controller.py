@@ -3,7 +3,8 @@ import time
 import rclpy
 from rclpy.node import Node
 import turtle_parking_bot.emqx.emqx_pub as emqx_pub
-
+from emqx.emqx_pub import EmqxPublisher
+import time
 
 class CenterController(Node):
     def __init__(self):
@@ -16,9 +17,12 @@ class CenterController(Node):
             10
         )
 
-        self.mqtt_client = emqx_pub.connect_mqtt()
-        self.client.loop_start()
-        # self.mqtt_client.loop_start()
+        self.pub = EmqxPublisher()
+        self.pub.start()
+
+       
+
+      
 
         self.get_logger().info("CenterController Node started. Listening to /parking/empty_spot_id")
 
@@ -31,30 +35,18 @@ class CenterController(Node):
 
         zone_id = zone_list[0]  # 맨 앞 요소 사용
 
-        for robot_id in ["0", "2"]:
-            payload = {
-                "id": robot_id,
+        message = {
+                "id": 'all',
                 "zone_id": zone_id,
                 "type": "start"
-            }
-
-  
-            self.client = emqx_pub.connect_mqtt()
-            
-            
-            message = {
-                "robot_id": "turtlebot4",
-                "status": "arrived",
-                "timestamp": int(time.time())
-            }
-
-            emqx_pub.publish(self.client,message)
+        }
+        self.pub.publish(message)
             # time.sleep(2)
             # self.client.loop_stop()
             # publish(self.mqtt_client, payload)
             # self.get_logger().info(f"MQTT 발송 → robot{robot_id}: {payload}")
     def end_node(self):
-        self.client.loop_stop()     
+        self.pub.stop() 
 
 def main(args=None):
     rclpy.init(args=args)
