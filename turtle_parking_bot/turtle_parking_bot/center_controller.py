@@ -86,9 +86,18 @@ class CenterController(Node):
             self.get_logger().warn("수신된 spot_ids 리스트가 비어 있음")
             return
 
-        zone_id = zone_list[0]  # 첫 번째 구역만 사용
+        zone_id = zone_list[0]  # 첫 번째 zone_id만 사용
+        zone_prefix = zone_id[0].upper()
 
-        for robot_id in ["robot0", "robot2"]:
+        if zone_prefix == 'A':
+            target_robots = ['robot2']
+        elif zone_prefix == 'B':
+            target_robots = ['robot0', 'robot1']
+        else:
+            self.get_logger().warn(f"알 수 없는 zone_id: {zone_id}")
+            return
+
+        for robot_id in target_robots:
             message = {
                 "id": robot_id,
                 "zone_id": zone_id,
@@ -114,4 +123,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
