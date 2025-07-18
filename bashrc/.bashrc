@@ -183,6 +183,7 @@ alias tb0_undock='ros2 action send_goal /robot0/undock irobot_create_msgs/action
 alias tb0_dock='ros2 action send_goal /robot0/dock irobot_create_msgs/action/Dock "{}"'
 # workspace source install/setup.bash
 alias si='source install/setup.bash'
+alias colrok='colcon build --packages-select rokey_pjt && source install/setup.bash'
 
 # tb2 localization / navigation
 # 1단계: localization
@@ -191,5 +192,14 @@ alias tb2_nav1='ros2 launch turtlebot4_navigation localization.launch.py namespa
 alias tb2_nav2='ros2 launch turtlebot4_viz view_robot.launch.py namespace:=/robot2'
 # 3단계: navigation stack 실행
 alias tb2_nav3='ros2 launch turtlebot4_navigation nav2.launch.py namespace:=/robot2 params_file:=$HOME/rokey_ws/configs/nav2_net2.yaml'
-# 4단계: 목표 좌표로 이동
-alias tb2_nav4='ros2 run rokey_pjt nav_to_pose --ros-args -r __ns:=/robot2'
+
+# tb0 localization / navigation
+# 1단계: localization
+alias tb0_nav1='ros2 launch turtlebot4_navigation localization.launch.py namespace:=/robot0 map:=$HOME/rokey_ws/maps/first_map.yaml params_file:=$HOME/rokey_ws/configs/local2.yaml'
+# 2단계: Rviz에서 로봇 시각화
+alias tb0_nav2='ros2 launch turtlebot4_viz view_robot.launch.py namespace:=/robot0'
+# 3단계: navigation stack 실행
+alias tb0_nav3='ros2 launch turtlebot4_navigation nav2.launch.py namespace:=/robot0 params_file:=$HOME/rokey_ws/configs/nav2_net2.yaml'
+
+alias tb2_control='ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r /cmd_vel:=/robot2/cmd_vel'
+alias tb0_control='ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r /cmd_vel:=/robot0/cmd_vel'
