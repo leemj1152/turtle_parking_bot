@@ -1,7 +1,9 @@
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from turtle_parking_bot.emqx.emqx_pub import connect_mqtt, publish
+import ast  
 
 
 class CenterController(Node):
@@ -18,24 +20,29 @@ class CenterController(Node):
         self.mqtt_client = connect_mqtt()
         self.mqtt_client.loop_start()
 
-        self.robot_turn = 0  # 0: robot0, 1: robot2
-
         self.get_logger().info("CenterController Node started. Listening to /parking/empty_spot_id")
 
     def spot_callback(self, msg):
-        zone_id = msg.data.strip()
+        try:
+            zone_list = ast.literal_eval(msg.data)
+            if not isinstance(zone_list, list):
+                raise ValueError
 
-        for robot_id in ["0", "2"]:
-            payload = {
-                "id": robot_id,
-                "zone_id": zone_id,
-                "type": "start"
-            }
+            def zone_sort_key(zone_id):
+                return (zone_id[0], int(zone_id[1:]))
+            zone_id = sorted(zone_list, key=zone_sort_key)[0]
 
-            publish(self.mqtt_client, payload) 
-            self.get_logger().info(f"MQTT 발송 → robot{robot_id}: {payload}")
+            for robot_id in ["0", "2"]:
+                payload = {
+                    "id": robot_id,
+                    "zone_id": zone_id,
+                    "type": "start"
+                }
+                publish(self.mqtt_client, payload)
+                self.get_logger().info(f"MQTT 발송 → robot{robot_id}: {payload}")
 
-        self.robot_turn = 1 - self.robot_turn
+        except Exception as e:
+            self.get_logger().error(f"메시지 파싱 또는 정렬 실패: {e}")
 
 
 def main(args=None):

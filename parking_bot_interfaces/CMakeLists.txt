@@ -27,6 +27,7 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/EmptySpots.srv"
+  "msg/EmptySpots.msg"
   DEPENDENCIES builtin_interfaces
 )
 

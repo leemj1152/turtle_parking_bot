@@ -7,7 +7,8 @@ import cv2
 import numpy as np
 import time
 
-from parking_bot_interfaces.srv import EmptySpots  # ✅ 커스텀 서비스 import
+from parking_bot_interfaces.srv import EmptySpots as EmptySpotsSrv  # ✅ 서비스용
+from parking_bot_interfaces.msg import EmptySpots                   # ✅ 메시지용
 
 # === 사용자 정의 ===
 x1, y1, x2, y2 = 369, 1, 480, 72
@@ -19,12 +20,16 @@ class ParkingMonitor(Node):
         super().__init__('parking_monitor')
         self.bridge = CvBridge()
         self.model = YOLO(YOLO_MODEL_PATH)
+
         self.image_sub = self.create_subscription(Image, '/usb_camera/image_raw', self.image_callback, 10)
 
-        # ✅ EmptySpots 서비스 클라이언트 생성
-        self.client = self.create_client(EmptySpots, '/check_empty_spots')
+        # ✅ 서비스 클라이언트 생성
+        self.client = self.create_client(EmptySpotsSrv, '/check_empty_spots')
         while not self.client.wait_for_service(timeout_sec=3.0):
             self.get_logger().warn('빈자리 확인 서비스가 준비되지 않았습니다. 대기 중...')
+
+        # ✅ 메시지 퍼블리셔 생성
+        self.empty_pub = self.create_publisher(EmptySpots, '/parking/empty_spots_msg', 10)
 
         self.last_entry_time = 0
         self.entry_cooldown = 5.0  # seconds
@@ -60,15 +65,22 @@ class ParkingMonitor(Node):
         cv2.waitKey(1)
 
     def call_check_empty_service(self):
-        req = EmptySpots.Request()
-        req.trigger = True  # ✅ 요청 트리거 설정
+        req = EmptySpotsSrv.Request()
+        req.trigger = True  # ✅ 요청 트리거
 
         future = self.client.call_async(req)
 
         def callback(fut):
             try:
                 res = fut.result()
-                self.get_logger().info(f"응답 받은 빈 자리 목록: {list(res.spot_ids)}")
+                spot_list = list(res.spot_ids)
+                self.get_logger().info(f"응답 받은 빈 자리 목록: {spot_list}")
+
+                # ✅ 퍼블리시
+                msg = EmptySpots()
+                msg.spot_ids = spot_list
+                self.empty_pub.publish(msg)
+
             except Exception as e:
                 self.get_logger().error(f"서비스 호출 중 오류: {e}")
 
