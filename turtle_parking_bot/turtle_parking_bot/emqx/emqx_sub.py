@@ -1,11 +1,15 @@
 import random
 import json
 from paho.mqtt import client as mqtt_client
+from dotenv import load_dotenv
+import os
 
-broker = 't1f11760.ala.us-east-1.emqxsl.com'
-port = 8883
-username = 'emqx'
-password = 'rokey1234'
+load_dotenv()
+
+broker = os.getenv('Broker')
+username = os.getenv('USERNAME')
+password = os.getenv('PASSWORD')
+port =  os.getenv('8883')
 
 topic = "python/mqtt"
 client_id = f'python-mqtt-{random.randint(0, 100)}'
