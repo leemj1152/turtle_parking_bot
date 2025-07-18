@@ -1,0 +1,1 @@
+string[] spot_ids
