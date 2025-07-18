@@ -6,6 +6,8 @@ from geometry_msgs.msg import PoseStamped, Pose
 import emqx.emqx_sub
 import time
 from std_msgs.msg import Header, String
+from turtle_parking_bot.emqx.emqx_sub import EmqxSubscriber
+
 
 class TurtleFunction(Node):
     def __init__(self):
@@ -74,7 +76,8 @@ class TurtleFunction(Node):
         return None
     
     def emqx_run(callback_function):
-        emqx.emqx_sub.run(callback_function)
+        sub = EmqxSubscriber(callback=callback_function)
+        sub.run()
 
 
 def main(args=None):
