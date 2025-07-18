@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 
-broker = os.getenv('t1f11760.ala.us-east-1.emqxsl.com')
+broker = os.getenv('Broker')
 username = os.getenv('USERNAME')
 password = os.getenv('PASSWORD')
 port =  os.getenv('8883')
