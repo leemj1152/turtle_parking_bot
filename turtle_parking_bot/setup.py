@@ -26,7 +26,8 @@ setup(
             'cctv_find_empty = turtle_parking_bot.cctv_find_empty:main',
             'roi_test = turtle_parking_bot.select_roi_from_topic:main',
             'nav_to_empty_spot = turtle_parking_bot.nav_to_empty_spot:main',
-            'center_controller = turtle_parking_bot.center_controller:main'
+            'center_controller = turtle_parking_bot.center_controller:main',
+            'nav_to_pose = turtle_parking_bot.example.nav_to_pose:main'
         ],
     },
 )

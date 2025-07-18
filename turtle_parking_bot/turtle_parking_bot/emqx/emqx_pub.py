@@ -3,13 +3,16 @@ import json
 from paho.mqtt import client as mqtt_client
 from dotenv import load_dotenv
 import os
+import time
+from pathlib import Path
+
 
 load_dotenv()
 
-broker = os.getenv('Broker')
-username = os.getenv('USERNAME')
+broker = os.getenv('BROKER')
+username = os.getenv('USERID')
 password = os.getenv('PASSWORD')
-port =  os.getenv('8883')
+port =  int(os.getenv('PORT'))
 
 topic = "python/mqtt"
 client_id = f'python-mqtt-{random.randint(0, 100)}'
@@ -38,10 +41,18 @@ def publish(client , message):
         print(f"Failed to send message to topic {topic}")
 
 def run():
+  
     client = connect_mqtt()
     client.loop_start()
-    publish(client)
-    import time
+    
+    message = {
+        "robot_id": "turtlebot4",
+        "status": "arrived",
+        "timestamp": int(time.time())
+    }
+
+    publish(client,message)
+   
     time.sleep(2)
     client.loop_stop()
 
