@@ -1,10 +1,9 @@
-
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from turtle_parking_bot.emqx.emqx_pub import connect_mqtt, publish
-import ast  
 
+import ast  # 안전하게 리스트로 파싱
 
 class CenterController(Node):
     def __init__(self):
@@ -24,13 +23,13 @@ class CenterController(Node):
 
     def spot_callback(self, msg):
         try:
+            # 문자열 리스트 → 진짜 리스트로 변환
             zone_list = ast.literal_eval(msg.data)
-            if not isinstance(zone_list, list):
-                raise ValueError
+            if not isinstance(zone_list, list) or len(zone_list) == 0:
+                self.get_logger().warn("비어있거나 잘못된 형식의 zone_list 수신됨")
+                return
 
-            def zone_sort_key(zone_id):
-                return (zone_id[0], int(zone_id[1:]))
-            zone_id = sorted(zone_list, key=zone_sort_key)[0]
+            zone_id = zone_list[0]  # 맨 앞에 있는 zone_id만 사용
 
             for robot_id in ["0", "2"]:
                 payload = {
@@ -42,7 +41,7 @@ class CenterController(Node):
                 self.get_logger().info(f"MQTT 발송 → robot{robot_id}: {payload}")
 
         except Exception as e:
-            self.get_logger().error(f"메시지 파싱 또는 정렬 실패: {e}")
+            self.get_logger().error(f"zone_list 파싱 실패: {e}")
 
 
 def main(args=None):
