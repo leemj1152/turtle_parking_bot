@@ -38,7 +38,7 @@ class USBCameraPublisher(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = USBCameraPublisher(cam_index=3)  # ✅ 항상 2번 카메라 사용
+    node = USBCameraPublisher(cam_index=2)  # ✅ 항상 2번 카메라 사용
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

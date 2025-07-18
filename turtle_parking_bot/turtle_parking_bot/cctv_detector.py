@@ -1,91 +1,78 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from std_msgs.msg import Bool, String
 from cv_bridge import CvBridge
 from ultralytics import YOLO
 import cv2
 import numpy as np
+import time
 
-# === 사용자 정의 ROI ===
-B1_ROI = (386, 172, 512, 239)
-B2_ROI = (488, 124, 609, 203)
-B3_ROI = (2, 205, 132, 279)
+from parking_bot_interfaces.srv import EmptySpots  # ✅ 커스텀 서비스 import
 
-PARKING_SPOTS = {
-    'B1': B1_ROI,
-    'B2': B2_ROI,
-    'B3': B3_ROI,
-}
-
+# === 사용자 정의 ===
+x1, y1, x2, y2 = 369, 1, 480, 72
+ENTRANCE_ROI = (x1, y1, x2, y2)
 YOLO_MODEL_PATH = '/home/rokey/yolov11/best.pt'
-
-def is_overlap(box, roi):
-    bx1, by1, bx2, by2 = box
-    rx1, ry1, rx2, ry2 = roi
-    ix1 = max(bx1, rx1)
-    iy1 = max(by1, ry1)
-    ix2 = min(bx2, rx2)
-    iy2 = min(by2, ry2)
-    return ix1 < ix2 and iy1 < iy2
 
 class ParkingMonitor(Node):
     def __init__(self):
         super().__init__('parking_monitor')
         self.bridge = CvBridge()
         self.model = YOLO(YOLO_MODEL_PATH)
-        self.latest_frame = None
-
         self.image_sub = self.create_subscription(Image, '/usb_camera/image_raw', self.image_callback, 10)
-        self.entry_sub = self.create_subscription(Bool, '/parking/entry', self.entry_callback, 10)
-        self.spot_pub = self.create_publisher(String, '/parking/empty_spot_id', 10)
+
+        # ✅ EmptySpots 서비스 클라이언트 생성
+        self.client = self.create_client(EmptySpots, '/check_empty_spots')
+        while not self.client.wait_for_service(timeout_sec=3.0):
+            self.get_logger().warn('빈자리 확인 서비스가 준비되지 않았습니다. 대기 중...')
+
+        self.last_entry_time = 0
+        self.entry_cooldown = 5.0  # seconds
 
     def image_callback(self, msg):
-        self.latest_frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-
-    def entry_callback(self, msg):
-        if not msg.data or self.latest_frame is None:
-            return
-
-        frame = self.latest_frame.copy()
+        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         results = self.model(frame)[0]
-        occupied_spots = []
 
-        # ROI 영역 표시
-        for spot_id, roi in PARKING_SPOTS.items():
-            x1, y1, x2, y2 = roi
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 2)
-            cv2.putText(frame, spot_id, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+        # 입구 ROI 시각화
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 2)
+        cv2.putText(frame, "Entrance ROI", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
 
-        # 차량 감지 표시
         for box in results.boxes:
             cls = int(box.cls[0])
             if self.model.names[cls] != 'car':
                 continue
 
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(frame, 'car', (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            x1b, y1b, x2b, y2b = map(int, box.xyxy[0])
+            cx, cy = int((x1b + x2b) / 2), int((y1b + y2b) / 2)
 
-            for spot_id, roi in PARKING_SPOTS.items():
-                if spot_id not in occupied_spots and is_overlap((x1, y1, x2, y2), roi):
-                    self.get_logger().info(f"차량이 {spot_id} 구역에 있습니다.")
-                    occupied_spots.append(spot_id)
+            cv2.rectangle(frame, (x1b, y1b), (x2b, y2b), (0, 255, 0), 2)
+            cv2.circle(frame, (cx, cy), 3, (0, 255, 0), -1)
+            cv2.putText(frame, "car", (x1b, y1b - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        empty_spots = [sid for sid in PARKING_SPOTS if sid not in occupied_spots]
+            if ENTRANCE_ROI[0] <= cx <= ENTRANCE_ROI[2] and ENTRANCE_ROI[1] <= cy <= ENTRANCE_ROI[3]:
+                if time.time() - self.last_entry_time > self.entry_cooldown:
+                    self.get_logger().info("차량 입차 감지 → 빈자리 서비스 요청")
+                    self.call_check_empty_service()
+                    self.last_entry_time = time.time()
+                    cv2.putText(frame, "Entry Detected!", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
 
-        if not empty_spots:
-            self.get_logger().info("빈 공간 없음")
-        else:
-            for spot_id in empty_spots:
-                msg = String()
-                msg.data = spot_id
-                self.get_logger().info(f"빈 자리 발견: {spot_id} → 문자열 전송")
-                self.spot_pub.publish(msg)
-
-        # 시각화 결과 출력
-        cv2.imshow("Parking Detection", frame)
+        cv2.imshow("Entrance Monitor", frame)
         cv2.waitKey(1)
+
+    def call_check_empty_service(self):
+        req = EmptySpots.Request()
+        req.trigger = True  # ✅ 요청 트리거 설정
+
+        future = self.client.call_async(req)
+
+        def callback(fut):
+            try:
+                res = fut.result()
+                self.get_logger().info(f"응답 받은 빈 자리 목록: {list(res.spot_ids)}")
+            except Exception as e:
+                self.get_logger().error(f"서비스 호출 중 오류: {e}")
+
+        future.add_done_callback(callback)
 
 def main(args=None):
     rclpy.init(args=args)
@@ -93,7 +80,7 @@ def main(args=None):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("종료 요청 수신됨")
+        node.get_logger().info("종료")
     finally:
         node.destroy_node()
         if rclpy.ok():
