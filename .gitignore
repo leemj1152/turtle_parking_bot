@@ -1,0 +1,28 @@
+# .gitignore 내용
+
+# 1. 모든 파일과 폴더 무시
+*
+
+# 2. 디렉토리만 예외 처리
+!turtle_parking_bot/
+
+# 3. 예외 디렉토리 안의 모든 내용도 추적
+!turtle_parking_bot/**
+!turtle_parking_bot/**/*
+# 2. 디렉토리만 예외 처리
+!parking_bot_interfaces/
+
+# 3. 예외 디렉토리 안의 모든 내용도 추적
+!parking_bot_interfaces/**
+!parking_bot_interfaces/**/*
+# 2. 디렉토리만 예외 처리
+!bashrc/
+
+# 3. 예외 디렉토리 안의 모든 내용도 추적
+!bashrc/**
+
+.env
+
+# 2. .gitignore 파일은 무시하지 않음 (추적 대상)
+!.gitignore
+
