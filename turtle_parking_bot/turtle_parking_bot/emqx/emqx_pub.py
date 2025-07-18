@@ -11,14 +11,18 @@ from paho.mqtt import client as mqtt_client
 # Load environment variables from .env in same directory
 # env_path = Path(__file__).resolve().parent / ".env"
 
+
+
 install_env_path = Path(
     os.environ.get('AMENT_PREFIX_PATH', '/opt/ros/humble').split(':')[0]
 ) / 'share' / 'turtle_parking_bot' / 'emqx' / '.env'
 
+
 if install_env_path.exists():
     load_dotenv(dotenv_path=install_env_path)
 else:
-    print(f"⚠️ .env file not found at {install_env_path}")
+    print(f"⚠️ AMENT_PREFIX_PATH is differ at {install_env_path}")
+    install_env_path = '/home/rokey/rokey_ws/install/turtle_parking_bot/share/turtle_parking_bot/emqx/.env'
 
 load_dotenv(dotenv_path=install_env_path)
 
