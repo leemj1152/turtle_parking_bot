@@ -1,5 +1,5 @@
 from setuptools import find_packages, setup
-
+from glob import glob
 package_name = 'turtle_parking_bot'
 
 setup(
@@ -8,9 +8,10 @@ setup(
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
+        ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/cctv_parking_system.launch.py']),
+        ('share/' + package_name + '/emqx', ['turtle_parking_bot/emqx/.env']),  # ✅ 추가
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,7 +28,8 @@ setup(
             'roi_test = turtle_parking_bot.select_roi_from_topic:main',
             'nav_to_empty_spot = turtle_parking_bot.nav_to_empty_spot:main',
             'center_controller = turtle_parking_bot.center_controller:main',
-            'nav_to_pose = turtle_parking_bot.example.nav_to_pose:main'
+            'nav_to_pose = turtle_parking_bot.example.nav_to_pose:main',
+            'emqx_pub_use = turtle_parking_bot.emqx.emqx_pub_use:main'
         ],
     },
 )

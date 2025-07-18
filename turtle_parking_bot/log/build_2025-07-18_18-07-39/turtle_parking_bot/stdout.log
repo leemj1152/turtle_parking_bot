@@ -1,0 +1,78 @@
+running egg_info
+creating build/turtle_parking_bot/turtle_parking_bot.egg-info
+writing build/turtle_parking_bot/turtle_parking_bot.egg-info/PKG-INFO
+writing dependency_links to build/turtle_parking_bot/turtle_parking_bot.egg-info/dependency_links.txt
+writing entry points to build/turtle_parking_bot/turtle_parking_bot.egg-info/entry_points.txt
+writing requirements to build/turtle_parking_bot/turtle_parking_bot.egg-info/requires.txt
+writing top-level names to build/turtle_parking_bot/turtle_parking_bot.egg-info/top_level.txt
+writing manifest file 'build/turtle_parking_bot/turtle_parking_bot.egg-info/SOURCES.txt'
+reading manifest file 'build/turtle_parking_bot/turtle_parking_bot.egg-info/SOURCES.txt'
+writing manifest file 'build/turtle_parking_bot/turtle_parking_bot.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/select_roi_from_topic.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/cctv_detector.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/nav_to_empty_spot.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/yolowithdepthtf.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/camera_publisher.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/testv1.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/test_detection.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/center_controller.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/__init__.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+copying turtle_parking_bot/cctv_find_empty.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/example
+copying turtle_parking_bot/example/publisher.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/example
+copying turtle_parking_bot/example/__init__.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/example
+copying turtle_parking_bot/example/nav_to_pose.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/example
+running install
+running install_lib
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/select_roi_from_topic.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/cctv_detector.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/nav_to_empty_spot.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/yolowithdepthtf.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/example
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/example/publisher.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/example
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/example/__init__.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/example
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/example/nav_to_pose.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/example
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/camera_publisher.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/testv1.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/test_detection.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/center_controller.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/__init__.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+copying /home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/build/lib/turtle_parking_bot/cctv_find_empty.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/select_roi_from_topic.py to select_roi_from_topic.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/cctv_detector.py to cctv_detector.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/nav_to_empty_spot.py to nav_to_empty_spot.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/yolowithdepthtf.py to yolowithdepthtf.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/example/publisher.py to publisher.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/example/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/example/nav_to_pose.py to nav_to_pose.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/camera_publisher.py to camera_publisher.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/testv1.py to testv1.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/test_detection.py to test_detection.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/center_controller.py to center_controller.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot/cctv_find_empty.py to cctv_find_empty.cpython-310.pyc
+running install_data
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/share/ament_index
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/share/ament_index/resource_index
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/share/ament_index/resource_index/packages
+copying resource/turtle_parking_bot -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/share/ament_index/resource_index/packages
+copying package.xml -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/share/turtle_parking_bot
+creating /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/share/turtle_parking_bot/launch
+copying launch/cctv_parking_system.launch.py -> /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/share/turtle_parking_bot/launch
+running install_egg_info
+Copying build/turtle_parking_bot/turtle_parking_bot.egg-info to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/python3.10/site-packages/turtle_parking_bot-0.0.0-py3.10.egg-info
+running install_scripts
+Installing camera_publisher script to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/turtle_parking_bot
+Installing cctv_detector script to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/turtle_parking_bot
+Installing cctv_find_empty script to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/turtle_parking_bot
+Installing center_controller script to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/turtle_parking_bot
+Installing nav_to_empty_spot script to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/turtle_parking_bot
+Installing nav_to_pose script to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/turtle_parking_bot
+Installing roi_test script to /home/rokey/rokey_ws/src/turtle_parking_bot/install/turtle_parking_bot/lib/turtle_parking_bot
+writing list of installed files to '/home/rokey/rokey_ws/src/turtle_parking_bot/build/turtle_parking_bot/install.log'
