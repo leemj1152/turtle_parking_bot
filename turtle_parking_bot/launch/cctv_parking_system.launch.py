@@ -13,14 +13,14 @@ def generate_launch_description():
         ),
         Node(
             package='turtle_parking_bot',
-            executable='cctv_detector',
-            name='cctv_detector',
+            executable='cctv_find_empty',
+            name='cctv_find_empty',
             output='screen'
         ),
         Node(
             package='turtle_parking_bot',
-            executable='cctv_find_empty',
-            name='cctv_find_empty',
+            executable='cctv_detector',
+            name='cctv_detector',
             output='screen'
         ),
         Node(
