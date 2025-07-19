@@ -1,31 +1,26 @@
 #!/usr/bin/env python3
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import rclpy
+from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 import yaml
-
 import time
 import threading
+import json
+import signal
+
 from geometry_msgs.msg import PoseStamped, Pose
-from std_msgs.msg import Header, String
+from std_msgs.msg import Header
 from turtlebot4_navigation.turtlebot4_navigator import TurtleBot4Navigator
 from rclpy.node import Node
-
-# from turtle_parking_bot.emqx.emqx_sub import EmqxSubscriber
-# from turtle_parking_bot.turtlebot import emqx_run
-from paho.mqtt import client as mqtt_client
-import random
-import json
-
 from pathlib import Path
 from dotenv import load_dotenv
-# from turtle_parking_bot.turtlebot.turtlefunction import TurtleFunction
+
+# 로컬 환경/ROS 패키지 구분 import
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 try:
-    # ROS2 실행용 (패키지로 설치된 경우)
     from turtle_parking_bot.turtlebot.turtlefunction import TurtleFunction
 except ImportError:
-    # VS Code에서 직접 실행 (로컬 모듈 import)
     from turtlebot.turtlefunction import TurtleFunction
 
 
@@ -34,38 +29,54 @@ class ParkingSpotManager(Node):
         super().__init__('parking_spot_manager')
         self.parking_spot = None
         self.lock = threading.Lock()
-        self.signal_received = threading.Event()        
-        self.subscriber = TurtleFunction.emqx_run(self.my_callback)
-      
+        self.signal_received = threading.Event()
+        self.subscriber = None
+        self.mqtt_connected = False
+        
+        # MQTT 연결을 안전하게 시작
+        self._setup_mqtt()
+
+    def _setup_mqtt(self):
+        """MQTT 설정을 안전하게 수행"""
+        try:
+            self.get_logger().info("🔌 MQTT 연결 시도 중...")
+            self.subscriber = TurtleFunction.emqx_run(self.my_callback)
+            self.mqtt_connected = True
+            self.get_logger().info("✅ MQTT 연결 성공")
+        except Exception as e:
+            self.get_logger().error(f"❌ MQTT 연결 실패: {e}")
+            self.mqtt_connected = False
+
     def my_callback(self, client, userdata, msg):
-        # try:
-        payload = msg.payload.decode()
-        print(f"[👋 custom] message: {payload}")
-        data = json.loads(payload)
+        try:
+            payload = msg.payload.decode()
+            data = json.loads(payload)
+            
+            self.get_logger().info(f"📨 MQTT 메시지 수신: {data}")
 
-        if data.get("type") == "start":
-            zone_id = data.get("zone_id")
-            if zone_id:
-                self.update_parking_spot(zone_id)
-                if self.get_parking_spot() is not None:
-                    self.signal_received.set()
-
-        #     if data.get("type") == "start":
-        #         zone_id = data.get("zone_id")
-        #         if zone_id:
-        #             self.update_parking_spot(zone_id)
-        #             self.signal_received.set()  # ✅ 이벤트 플래그 설정                    # self.start_signal_received.set()
-        # except Exception as e:
-        #     print(f"[❌ MQTT 처리 에러] {e}")
+            if data.get("type") == "start":
+                zone_id = data.get("zone_id")
+                if zone_id:
+                    self.update_parking_spot(zone_id)
+                    if self.get_parking_spot() is not None:
+                        self.signal_received.set()
+        except Exception as e:
+            self.get_logger().error(f"❌ MQTT 콜백 에러: {e}")
 
     def update_parking_spot(self, spot_name):
         coords = get_parking_spot_map_coord(spot_name)
         if coords is not None:
             pose = PoseStamped()
             pose.header.frame_id = 'map'
+            pose.header.stamp = self.get_clock().now().to_msg()
             pose.pose.position.x = coords[0]
             pose.pose.position.y = coords[1]
+            pose.pose.position.z = 0.0
+            pose.pose.orientation.x = 0.0
+            pose.pose.orientation.y = 0.0
+            pose.pose.orientation.z = 0.0
             pose.pose.orientation.w = 1.0
+            
             with self.lock:
                 self.parking_spot = pose
             self.get_logger().info(f'🅿️ 수신된 주차 위치 "{spot_name}" → 좌표: x={coords[0]:.2f}, y={coords[1]:.2f}')
@@ -75,6 +86,9 @@ class ParkingSpotManager(Node):
     def get_parking_spot(self):
         with self.lock:
             return self.parking_spot
+
+    def reset_signal(self):
+        self.signal_received.clear()
 
 
 def get_parking_spot_map_coord(spot_name: str):
@@ -90,158 +104,259 @@ def get_parking_spot_map_coord(spot_name: str):
 
 
 def load_pose_from_yaml(yaml_path: str, key: str) -> PoseStamped:
-    try:
-        import yaml
-        from geometry_msgs.msg import PoseStamped, Pose
-        from std_msgs.msg import Header
-        with open(yaml_path, 'r') as f:
-            data = yaml.safe_load(f)
-        pose_data = data[key]['pose']
-        header_data = data[key].get('header', {'frame_id': 'map'})
-        pose_stamped = PoseStamped()
-        pose_stamped.header = Header()
-        pose_stamped.header.frame_id = header_data.get('frame_id', 'map')
-        pose_stamped.pose = Pose()
-        pose_stamped.pose.position.x = pose_data['position']['x']
-        pose_stamped.pose.position.y = pose_data['position']['y']
-        pose_stamped.pose.position.z = pose_data['position'].get('z', 0.0)
-        pose_stamped.pose.orientation.x = pose_data['orientation']['x']
-        pose_stamped.pose.orientation.y = pose_data['orientation']['y']
-        pose_stamped.pose.orientation.z = pose_data['orientation']['z']
-        pose_stamped.pose.orientation.w = pose_data['orientation']['w']
-        return pose_stamped
-    except Exception as e:
-        print(f"❌ YAML 로딩 실패: {e}")
-        raise
+    with open(yaml_path, 'r') as f:
+        data = yaml.safe_load(f)
+    pose_data = data[key]['pose']
+    header_data = data[key].get('header', {'frame_id': 'map'})
+
+    pose_stamped = PoseStamped()
+    pose_stamped.header = Header()
+    pose_stamped.header.frame_id = header_data.get('frame_id', 'map')
+    pose_stamped.pose = Pose()
+    pose_stamped.pose.position.x = pose_data['position']['x']
+    pose_stamped.pose.position.y = pose_data['position']['y']
+    pose_stamped.pose.position.z = pose_data['position'].get('z', 0.0)
+    pose_stamped.pose.orientation.x = pose_data['orientation']['x']
+    pose_stamped.pose.orientation.y = pose_data['orientation']['y']
+    pose_stamped.pose.orientation.z = pose_data['orientation']['z']
+    pose_stamped.pose.orientation.w = pose_data['orientation']['w']
+    return pose_stamped
 
 
 def wait_for_parking_spot(parking_manager, timeout=30):
-    print(f"📡 주차 위치 대기 중... (최대 {timeout}초)")
-    # start_time = time.time()
-    # while time.time() - start_time < timeout:
-        # rclpy.spin_once(parking_manager, timeout_sec=0.1)
-    if parking_manager.signal_received.wait(timeout=timeout):
-        parking_spot = parking_manager.get_parking_spot()
-        if parking_spot is not None:
-            print(f"   ✅ 주차 위치 수신: ({parking_spot.pose.position.x:.2f}, {parking_spot.pose.position.y:.2f})")
-            return parking_spot
+    """주차 위치 수신 대기"""
+    print(f"📍 주차 위치 수신 대기 중... (최대 {timeout}초)")
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        if parking_manager.signal_received.is_set():
+            parking_spot = parking_manager.get_parking_spot()
+            if parking_spot is not None:
+                print(f"✅ 주차 위치 수신 완료")
+                return parking_spot
         time.sleep(0.1)
-    print("   ⚠️ 주차 위치 수신 타임아웃")
+    
+    print("❌ 주차 위치 수신 타임아웃")
     return None
 
 
-def main():
-    rclpy.init()
-    navigator = TurtleBot4Navigator(namespace='/robot2')
-    parking_manager = ParkingSpotManager()
+class TurtleBotController:
+    def __init__(self, namespace='/robot2'):
+        self.namespace = namespace
+        self.navigator = None
+        self.parking_manager = None
+        self.executor = None
+        self.executor_thread = None
+        self.running = False
 
-    parking_manager.signal_received.clear()
-
-
-
-    # MQTT 구독 시작
-    # mqtt_subscriber = MQTTSubscriber(on_message_callback=parking_manager.update_parking_spot)
-    # mqtt_subscriber.start()
-
-    print('aaaaaaaaaaaaaaaaaaaaaaa')
-
-    try:
-        # 초기 위치 설정
+    def initialize(self):
+        """시스템 초기화"""
         try:
-            initial_pose = load_pose_from_yaml(os.path.expanduser('~/rokey_ws/maps/tb2_initial_pose.yaml'), 'initial_pose')
-            initial_pose.header.frame_id = 'map'
-            navigator.setInitialPose(initial_pose)
+            print("🚀 TurtleBot 컨트롤러 초기화 중...")
+            
+            # Navigator 생성
+            self.navigator = TurtleBot4Navigator(namespace=self.namespace)
+            
+            # ParkingSpotManager 생성
+            self.parking_manager = ParkingSpotManager()
+            self.parking_manager.reset_signal()
+            
+            # MultiThreadedExecutor 설정
+            self.executor = MultiThreadedExecutor(num_threads=4)
+            self.executor.add_node(self.parking_manager)
+            
+            # Executor를 별도 스레드에서 실행
+            self.executor_thread = threading.Thread(target=self._run_executor, daemon=True)
+            self.executor_thread.start()
+            self.running = True
+            
+            print("✅ 시스템 초기화 완료")
+            time.sleep(2)  # 초기화 안정화 대기
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ 초기화 실패: {e}")
+            return False
+
+    def _run_executor(self):
+        """Executor 실행 (별도 스레드)"""
+        try:
+            while self.running and rclpy.ok():
+                self.executor.spin_once(timeout_sec=0.1)
+        except Exception as e:
+            print(f"❌ Executor 실행 중 오류: {e}")
+
+    def wait_for_navigation_complete(self, timeout=90, action_name="네비게이션"):
+        """네비게이션 완료 대기"""
+        print(f"⏳ {action_name} 완료 대기 중... (최대 {timeout}초)")
+        start_time = time.time()
         
-            spin_thread = threading.Thread(target=rclpy.spin, args=(parking_manager,), daemon=True)
-            spin_thread.start()
-
-            print(f"   ✅ 초기 위치 설정 완료")
-        except Exception as e:
-            print(f"   ⚠️ 초기 위치 설정 실패: {e}")
-
-
-        print(f"  Next Step")
-        # undock
-        try:
-            navigator.undock()
-            print("   ✅ Undocking 완료")
-        except Exception as e:
-            print(f"   ⚠️ Undocking 실패: {e}")
-
-        # Nav2 활성화 대기
-      
-        nav2_ready = threading.Event()
-
-        def wait_for_nav2():
+        while time.time() - start_time < timeout:
             try:
-                navigator.waitUntilNav2Active()
-                nav2_ready.set()
+                if self.navigator.isTaskComplete():
+                    print(f"✅ {action_name} 완료")
+                    return True
+                time.sleep(0.1)
             except Exception as e:
-                print(f"   ❌ Nav2 활성화 실패: {e}")
+                print(f"⚠️ 상태 확인 중 오류: {e}")
+                time.sleep(0.5)
+        
+        print(f"⏰ {action_name} 타임아웃 ({timeout}초)")
+        return False
 
-        nav2_thread = threading.Thread(target=wait_for_nav2)
-        nav2_thread.start()
+    def set_initial_pose(self):
+        """초기 위치 설정"""
+        try:
+            initial_pose = load_pose_from_yaml(
+                os.path.expanduser('~/rokey_ws/maps/tb2_initial_pose.yaml'), 
+                'initial_pose'
+            )
+            initial_pose.header.frame_id = 'map'
+            self.navigator.setInitialPose(initial_pose)
+            print("✅ 초기 위치 설정 완료")
+            return True
+        except Exception as e:
+            print(f"⚠️ 초기 위치 설정 실패: {e}")
+            return False
 
-        if nav2_ready.wait(timeout=60):
-            print("   ✅ Nav2 활성화 완료")
-        else:
-            print("   ⚠️ Nav2 활성화 타임아웃")
+    def wait_nav2_active(self):
+        """Nav2 활성화 대기"""
+        try:
+            print("📡 Nav2 활성화 대기 중...")
+            self.navigator.waitUntilNav2Active()
+            print("✅ Nav2 활성화 완료")
+            return True
+        except Exception as e:
+            print(f"❌ Nav2 활성화 실패: {e}")
+            return False
 
-        # MQTT로부터 주차 위치 수신 대기
-        parking_pose = wait_for_parking_spot(parking_manager, timeout=30)
+    def undock(self):
+        """언도킹 실행"""
+        try:
+            print("🔄 언도킹 시작...")
+            self.navigator.undock()
+            # 언도킹은 완료 확인이 다를 수 있으므로 시간 대기
+            time.sleep(5)
+            print("✅ 언도킹 완료")
+            return True
+        except Exception as e:
+            print(f"⚠️ 언도킹 실패: {e}")
+            return False
+
+    def go_to_parking_spot(self):
+        """주차 위치로 이동"""
+        # 주차 위치 수신 대기
+        parking_pose = wait_for_parking_spot(self.parking_manager, timeout=30)
         if parking_pose is None:
-            print("   ❌ 주차 위치 수신 실패, 종료")
+            return False
+
+        try:
+            print("🚗 주차 위치로 이동 시작...")
+            self.navigator.goToPose(parking_pose)
+            return self.wait_for_navigation_complete(timeout=120, action_name="주차 위치 이동")
+        except Exception as e:
+            print(f"❌ 주차 위치 이동 실패: {e}")
+            return False
+
+    def go_to_pre_dock(self):
+        """Pre-dock 위치로 이동"""
+        try:
+            pre_dock_pose = load_pose_from_yaml(
+                os.path.expanduser('~/rokey_ws/maps/tb2_pre_dock_pose.yaml'), 
+                'pre_dock_pose'
+            )
+            print("🔄 Pre-dock 위치로 이동 시작...")
+            self.navigator.goToPose(pre_dock_pose)
+            return self.wait_for_navigation_complete(timeout=90, action_name="Pre-dock 이동")
+        except Exception as e:
+            print(f"⚠️ Pre-dock 위치 이동 실패: {e}")
+            return False
+
+    def dock(self):
+        """도킹 실행"""
+        try:
+            print("🔌 도킹 시작...")
+            self.navigator.dock()
+            # 도킹 완료 대기 (도킹은 시간이 오래 걸릴 수 있음)
+            time.sleep(10)
+            print("✅ 도킹 완료")
+            return True
+        except Exception as e:
+            print(f"❌ 도킹 실패: {e}")
+            return False
+
+    def shutdown(self):
+        """시스템 종료"""
+        print("🔚 시스템 종료 중...")
+        self.running = False
+        
+        if self.executor:
+            try:
+                self.executor.shutdown()
+            except:
+                pass
+        
+        if self.executor_thread and self.executor_thread.is_alive():
+            self.executor_thread.join(timeout=2)
+
+
+def main():
+    # Signal handler for graceful shutdown
+    def signal_handler(signum, frame):
+        print("\n🛑 종료 신호 수신")
+        if 'controller' in locals():
+            controller.shutdown()
+        rclpy.shutdown()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    # ROS2 초기화
+    rclpy.init()
+    
+    controller = TurtleBotController()
+    
+    try:
+        # 1. 시스템 초기화
+        if not controller.initialize():
             return
 
-        # 주차 위치로 이동
-        print("5️⃣ 주차 위치로 이동 중...")
-        navigator.goToPose(parking_pose)
+        # 2. 초기 위치 설정
+        controller.set_initial_pose()
 
-        timeout = 60
-        elapsed = 0
-        while not navigator.isTaskComplete() and elapsed < timeout:
-            time.sleep(0.1)
-            elapsed += 0.1
+        # 3. Nav2 활성화 대기
+        if not controller.wait_nav2_active():
+            return
 
-        if elapsed >= timeout:
-            print("   ⚠️ 주차 위치 도착 타임아웃")
+        # 4. 언도킹
+        if not controller.undock():
+            print("⚠️ 언도킹에 실패했지만 계속 진행합니다.")
+
+        # 5. 주차 위치로 이동
+        if not controller.go_to_parking_spot():
+            print("❌ 주차 위치 이동 실패")
+            return
+
+        print("🎯 주차 완료! 이제 충전 스테이션으로 복귀합니다.")
+
+        # 6. Pre-dock 위치로 이동
+        if not controller.go_to_pre_dock():
+            print("⚠️ Pre-dock 위치 이동에 실패했지만 도킹을 시도합니다.")
+
+        # 7. 도킹
+        if controller.dock():
+            print("🎉 모든 작업 완료! 로봇이 충전 스테이션에 도킹되었습니다.")
         else:
-            print("   ✅ 주차 위치 도착 완료")
-
-        # pre-dock 위치 이동
-        print("6️⃣ Pre-dock 위치로 이동 중...")
-        try:
-            pre_dock_pose = load_pose_from_yaml(os.path.expanduser('~/rokey_ws/maps/tb2_pre_dock_pose.yaml'), 'pre_dock_pose')
-            navigator.goToPose(pre_dock_pose)
-
-            elapsed = 0
-            while not navigator.isTaskComplete() and elapsed < timeout:
-                time.sleep(0.1)
-                elapsed += 0.1
-
-            if elapsed >= timeout:
-                print("   ⚠️ Pre-dock 위치 도착 타임아웃")
-            else:
-                print("   ✅ Pre-dock 위치 도착 완료")
-        except Exception as e:
-            print(f"   ⚠️ Pre-dock 위치 이동 실패: {e}")
-
-        # 도킹 수행
-        print("7️⃣ 도킹 수행 중...")
-        try:
-            navigator.dock()
-            print("   ✅ 도킹 완료")
-        except Exception as e:
-            print(f"   ❌ 도킹 실패: {e}")
-
-        print("✅ 네비게이션 완료")
+            print("❌ 도킹 실패")
 
     except Exception as e:
-        print(f"❌ 예외 발생: {e}")
+        print(f"❌ 예상치 못한 오류 발생: {e}")
     finally:
-        # mqtt_subscriber.stop()
+        controller.shutdown()
         rclpy.shutdown()
-        print("🏁 프로그램 종료")
+        print("👋 프로그램 종료")
+
 
 if __name__ == '__main__':
     main()
