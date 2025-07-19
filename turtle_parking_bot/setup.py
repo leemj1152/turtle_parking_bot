@@ -29,7 +29,9 @@ setup(
             'nav_to_empty_spot = turtle_parking_bot.nav_to_empty_spot:main',
             'center_controller = turtle_parking_bot.center_controller:main',
             'nav_to_pose = turtle_parking_bot.example.nav_to_pose:main',
-            'emqx_pub_use = turtle_parking_bot.emqx.emqx_pub_use:main'
+            'emqx_pub_use = turtle_parking_bot.emqx.emqx_pub_use:main',
+            'turtle2=turtle_parking_bot.turtlebot.turtle2:main',
+            'turtle0=turtle_parking_bot.turtlebot.turtle0:main'
         ],
     },
 )

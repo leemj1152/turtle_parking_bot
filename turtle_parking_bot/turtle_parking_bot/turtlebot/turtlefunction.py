@@ -1,12 +1,22 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 import subprocess
 from geometry_msgs.msg import PoseStamped, Pose
-import emqx.emqx_sub
+# import emqx.emqx_sub
 import time
 from std_msgs.msg import Header, String
-from turtle_parking_bot.emqx.emqx_sub import EmqxSubscriber
+# from turtle_parking_bot.emqx.emqx_sub import EmqxSubscriber
+try:
+    # ROS2 실행용 (패키지로 설치된 경우)
+    from turtle_parking_bot.emqx.emqx_sub import EmqxSubscriber
+except ImportError:
+    # VS Code에서 직접 실행 (로컬 모듈 import)
+    from emqx.emqx_sub import EmqxSubscriber
+import threading
 
 
 class TurtleFunction(Node):
@@ -77,7 +87,10 @@ class TurtleFunction(Node):
     
     def emqx_run(callback_function):
         sub = EmqxSubscriber(callback=callback_function)
+
+        # ✅ MQTT를 백그라운드 스레드에서 실행
         sub.run()
+        return sub
 
 
 def main(args=None):

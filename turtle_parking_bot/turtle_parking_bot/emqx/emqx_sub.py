@@ -1,5 +1,4 @@
 # turtle_parking_bot/emqx/subscriber.py
-
 import random
 import json
 import os
@@ -10,38 +9,35 @@ from paho.mqtt import client as mqtt_client
 class EmqxSubscriber:
     def __init__(self, callback=None):
         self._load_env()
-
         self.broker = os.getenv('BROKER')
         self.username = os.getenv('USERID')
         self.password = os.getenv('PASSWORD')
         self.port = int(os.getenv('PORT', 8883))
         self.topic = os.getenv('TOPIC', 'python/mqtt')
         self.client_id = f'python-mqtt-sub-{random.randint(0, 100)}'
-
         self.callback = callback or self.default_callback
         self.client = self._connect_mqtt()
 
     def _load_env(self):
         base_path = Path(__file__).resolve().parent
         env_path = base_path / ".env"
-
         if not env_path.exists():
             first_prefix = os.environ.get('AMENT_PREFIX_PATH', '').split(':')[0]
             env_path = Path(first_prefix) / 'share' / 'turtle_parking_bot' / 'emqx' / '.env'
-
         if env_path.exists():
             load_dotenv(dotenv_path=env_path)
         else:
-            print(f"⚠️ .env file not found at {env_path}")
+            env_path = '/home/shin/rokey_ws/install/turtle_parking_bot/share/turtle_parking_bot/emqx/.env'
+            load_dotenv(dotenv_path=env_path)
+            print(f":찾음: .env file not found at {env_path}")
 
     def _connect_mqtt(self) -> mqtt_client.Client:
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
-                print("✅ Connected to MQTT Broker")
+                print(":흰색_확인_표시: Connected to MQTT Broker")
                 client.subscribe(self.topic)
             else:
-                print(f"❌ Failed to connect, return code {rc}")
-
+                print(f":x: Failed to connect, return code {rc}")
         client = mqtt_client.Client(client_id=self.client_id, protocol=mqtt_client.MQTTv311)
         client.tls_set()
         client.username_pw_set(self.username, self.password)
@@ -59,4 +55,9 @@ class EmqxSubscriber:
 
     def run(self):
         self.client.connect(self.broker, self.port)
-        self.client.loop_forever()
+        self.client.loop_start()  # ✅ 블로킹 없는 수신 시작
+       
+
+    def stop(self):
+        self.client.loop_stop()
+        self.client.disconnect()
