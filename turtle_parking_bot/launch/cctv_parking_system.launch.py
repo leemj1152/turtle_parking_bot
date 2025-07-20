@@ -28,5 +28,5 @@ def generate_launch_description():
             executable='center_controller',
             name='center_controller',
             output='screen'
-        )
+        ),
     ])

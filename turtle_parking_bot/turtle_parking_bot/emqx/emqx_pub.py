@@ -63,7 +63,7 @@ class EmqxPublisher:
     def stop(self):
         self.client.loop_stop()
 
-    def publish(self, message: dict, retain: bool = True):
+    def publish(self, message: dict, retain: bool = False):
         msg_json = json.dumps(message)
         result = self.client.publish(self.topic, msg_json, retain=retain)
         status = result[0]

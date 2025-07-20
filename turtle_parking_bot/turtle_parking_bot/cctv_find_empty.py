@@ -69,8 +69,8 @@ class EmptySpotServiceNode(Node):
                 if spot_id not in occupied_spots and is_overlap((x1, y1, x2, y2), roi):
                     occupied_spots.append(spot_id)
 
-        # empty_spots = [sid for sid in PARKING_SPOTS if sid not in occupied_spots]
-        empty_spots = ['A1']
+        empty_spots = [sid for sid in PARKING_SPOTS if sid not in occupied_spots]
+        # empty_spots = ['A2']
 
         response.spot_ids = empty_spots
         self.get_logger().info(f"빈 주차 구역 응답: {empty_spots}")

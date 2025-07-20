@@ -64,17 +64,19 @@ class ParkingMonitor(Node):
             i = i[0] if isinstance(i, (list, tuple, np.ndarray)) else i
             x1b, y1b, x2b, y2b, conf = bboxes[i]
             x1b, y1b, x2b, y2b = map(int, [x1b, y1b, x2b, y2b])
-            cx, cy = int((x1b + x2b) / 2), int((y1b + y2b) / 2)            
+            cx, cy = int((x1b + x2b) / 2), int((y1b + y2b) / 2)
             cv2.rectangle(frame, (x1b, y1b), (x2b, y2b), (0, 255, 0), 2)
             cv2.circle(frame, (cx, cy), 3, (0, 255, 0), -1)
             cv2.putText(frame, "car", (x1b, y1b - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        if ENTRANCE_ROI[0] <= cx <= ENTRANCE_ROI[2] and ENTRANCE_ROI[1] <= cy <= ENTRANCE_ROI[3]:
-            if time.time() - self.last_entry_time > self.entry_cooldown:
-                self.get_logger().info("차량 입차 감지 → 빈자리 서비스 요청")
-                self.call_check_empty_service()
-                self.last_entry_time = time.time()
-                cv2.putText(frame, "Entry Detected!", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+            # ✅ ROI 안에 들어온 차량만 처리
+            if ENTRANCE_ROI[0] <= cx <= ENTRANCE_ROI[2] and ENTRANCE_ROI[1] <= cy <= ENTRANCE_ROI[3]:
+                if time.time() - self.last_entry_time > self.entry_cooldown:
+                    self.get_logger().info("차량 입차 감지 → 빈자리 서비스 요청")
+                    self.call_check_empty_service()
+                    self.last_entry_time = time.time()
+                    cv2.putText(frame, "Entry Detected!", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+
 
         cv2.imshow("Entrance Monitor", frame)
         cv2.waitKey(1)
