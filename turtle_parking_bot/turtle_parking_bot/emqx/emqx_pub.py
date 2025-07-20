@@ -72,6 +72,7 @@ class EmqxPublisher:
         else:
             print(f"[MQTT] Failed to send message to `{self.topic}`")
 
+
 # Optional test run
 def main():
     publisher = EmqxPublisher()
