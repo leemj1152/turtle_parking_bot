@@ -9,11 +9,25 @@ import cv2
 from parking_bot_interfaces.srv import EmptySpots  # ✅ 커스텀 서비스
 
 # === 사용자 정의 ROI ===
-B1_ROI = (386, 172, 512, 239)
-B2_ROI = (488, 124, 609, 203)
-B3_ROI = (2, 205, 132, 279)
+# x1=126, y1=189, x2=177, y2=221
+# x1=117, y1=234, x2=180, y2=261
+# x1=102, y1=263, x2=153, y2=308
+A1_ROI = (126, 189, 177, 221)
+A2_ROI = (117, 234, 180, 261)
+A3_ROI = (102, 263, 153, 308)
+
+# x1=373, y1=315, x2=418, y2=366
+# x1=477, y1=321, x2=516, y2=367
+# x1=575, y1=318, x2=610, y2=362
+
+B1_ROI = (373, 315, 418, 366)
+B2_ROI = (477, 321, 516, 367)
+B3_ROI = (575, 318, 610, 362)
 
 PARKING_SPOTS = {
+    'A1': A1_ROI,
+    'A2': A2_ROI,
+    'A3': A3_ROI,
     'B1': B1_ROI,
     'B2': B2_ROI,
     'B3': B3_ROI,
@@ -79,7 +93,7 @@ class EmptySpotServiceNode(Node):
                 if spot_id in occupied_spots:
                     continue
                 overlap_ratio = get_overlap_ratio((x1, y1, x2, y2), roi)
-                if overlap_ratio >= 0.3:
+                if overlap_ratio >= 0.1:
                     occupied_spots.append(spot_id)
                     self.get_logger().info(f"{spot_id} 점유율: {overlap_ratio:.2f} → 점유로 판단")
 

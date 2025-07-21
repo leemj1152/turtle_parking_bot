@@ -39,7 +39,7 @@ class CenterController(Node):
         for robot_id in target_robots:
             message = {
                 "id": robot_id,
-                "zone_id": 'B3',
+                "zone_id": zone_id,
                 "type": "start"
             }
             self.pub.publish(message)

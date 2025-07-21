@@ -11,7 +11,8 @@ from parking_bot_interfaces.srv import EmptySpots as EmptySpotsSrv  # ✅ 서비
 from parking_bot_interfaces.msg import EmptySpots                   # ✅ 메시지용
 
 # === 사용자 정의 ===
-x1, y1, x2, y2 = 369, 1, 480, 72
+# x1=455, y1=148, x2=539, y2=210
+x1, y1, x2, y2 = 455, 148, 539, 210
 ENTRANCE_ROI = (x1, y1, x2, y2)
 YOLO_MODEL_PATH = '/home/rokey/yolov11/best.pt'
 
