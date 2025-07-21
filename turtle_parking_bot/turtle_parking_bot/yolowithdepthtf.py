@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image as ROSImage
+from sensor_msgs.msg import CompressedImage 
+from std_msgs.msg import String
 from geometry_msgs.msg import PointStamped
 from cv_bridge import CvBridge
 from visualization_msgs.msg import Marker
@@ -11,20 +13,21 @@ import cv2
 from ultralytics import YOLO
 import time
 import threading
+
 MARKER_TOPIC = 'detected_objects_marker'
 class YOLOWithDepthTF(Node):
     def __init__(self):
         super().__init__('yolo_with_depth_tf')
-        self.model = YOLO('/home/shin/바탕화면/bacass.pt')
+        self.model = YOLO('/home/rokey/rokey_ws/install/turtle_parking_bot/share/turtle_parking_bot/model/best.pt')
         self.bridge = CvBridge()
         self.rgb_img = None
         self.depth_img = None
         self.tf_ready = False
         self.last_infer_time = time.time()
         self.infer_interval = 0.5  # YOLO inference interval (seconds)
-        self.rgb_sub = self.create_subscription(ROSImage, '/robot2/oakd/rgb/image_raw', self.rgb_callback, 10)
-        self.depth_sub = self.create_subscription(ROSImage, '/robot2/oakd/stereo/image_raw', self.depth_callback, 10)
-        self.image_pub = self.create_publisher(ROSImage, '/yolo_debug/image', 10)
+        self.rgb_sub = self.create_subscription(CompressedImage, '/robot0/oakd/rgb/image_raw/compressed', self.rgb_callback, 10)
+        self.depth_sub = self.create_subscription(ROSImage, '/robot0/oakd/stereo/image_raw', self.depth_callback, 10)
+        self.result_pub = self.create_publisher(String, '/robot0/yolo_result', 10)
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.get_logger().info("TF Tree 안정화 시작. 5초 후 변환 시작합니다.")
@@ -38,9 +41,11 @@ class YOLOWithDepthTF(Node):
     def correct_depth_linear(self, measured_m):
         return 0.8285 * measured_m + 0.1071
     def rgb_callback(self, msg):
-        self.rgb_img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        # print('rgb callback 받음')
+        self.rgb_img = self.bridge.compressed_imgmsg_to_cv2(msg, desired_encoding='bgr8')
         self.run_overlay()
     def depth_callback(self, msg):
+        # print('depth callback 받음')
         self.depth_img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
     def publish_marker(self, x, y, z):
         marker = Marker()
@@ -60,43 +65,100 @@ class YOLOWithDepthTF(Node):
             return
         if time.time() - self.last_infer_time < self.infer_interval:
             return
+        print('런 오버레이 실행중')
         self.last_infer_time = time.time()
         rgb_copy = self.rgb_img.copy()
+
+# 코드 수정
+
+
         results = self.model(rgb_copy)[0]
-        for box in results.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            cx = int((x1 + x2) / 2)
-            cy = int((y1 + y2) / 2)
-            if self.depth_img.shape[:2] != self.rgb_img.shape[:2]:
-                scale_x = self.depth_img.shape[1] / self.rgb_img.shape[1]
-                scale_y = self.depth_img.shape[0] / self.rgb_img.shape[0]
-                cx_d = int(cx * scale_x)
-                cy_d = int(cy * scale_y)
-            else:
-                cx_d, cy_d = int(cx/2) + 80, int(cy/2) + 80
-            if 0 <= cy_d < self.depth_img.shape[0] and 0 <= cx_d < self.depth_img.shape[1]:
-                depth_mm = self.depth_img[cy_d, cx_d]
-                depth_m = self.correct_depth_linear(depth_mm / 1000.0)
-                depth_text = f"{depth_m:.2f}m"
-                if self.tf_ready and self.tf_buffer.can_transform('map', 'oakd_rgb_camera_optical_frame', rclpy.time.Time()):
-                    try:
-                        point_cam = PointStamped()
-                        point_cam.header.stamp = rclpy.time.Time().to_msg()
-                        point_cam.header.frame_id = 'oakd_rgb_camera_optical_frame'
-                        point_cam.point.x = 0.0
-                        point_cam.point.y = 0.0
-                        point_cam.point.z = depth_m
-                        point_map = self.tf_buffer.transform(point_cam, 'map')
-                        self.get_logger().info(f"[CAM] ({point_cam.point.x:.2f}, {point_cam.point.y:.2f}, {point_cam.point.z:.2f}) → [MAP] ({point_map.point.x:.2f}, {point_map.point.y:.2f}, {point_map.point.z:.2f})")
-                        self.publish_marker(point_map.point.x, point_map.point.y, point_map.point.z,)
-                    except Exception as e:
-                        self.get_logger().warn(f"TF 변환 실패: {e}")
-            else:
-                depth_text = "N/A"
-            cv2.rectangle(rgb_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.circle(rgb_copy, (cx, cy), 4, (0, 0, 255), -1)
-            cv2.putText(rgb_copy, depth_text, (x1, y1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+        if len(results.boxes) == 0:
+            return
+        # confidence가 가장 높은 하나만 선택
+        best_box = results.boxes[results.boxes.conf.argmax()]
+        print('객체 탐지됨')
+        x1, y1, x2, y2 = map(int, best_box.xyxy[0])
+        cx = int((x1 + x2) / 2)
+        cy = int((y1 + y2) / 2)
+        if self.depth_img.shape[:2] != self.rgb_img.shape[:2]:
+            scale_x = self.depth_img.shape[1] / self.rgb_img.shape[1]
+            scale_y = self.depth_img.shape[0] / self.rgb_img.shape[0]
+            cx_d = int(cx * scale_x)
+            cy_d = int(cy * scale_y)
+        else:
+            cx_d, cy_d = int(cx) + 10, int(cy)
+
+        if 0 <= cy_d < self.depth_img.shape[0] and 0 <= cx_d < self.depth_img.shape[1]:
+            depth_mm = self.depth_img[cy_d, cx_d]
+            depth_m = self.correct_depth_linear(depth_mm / 1000.0)
+            depth_text = f"{depth_m:.2f}m"
+            print('depth_text', depth_text)
+            if self.tf_ready and self.tf_buffer.can_transform('map', 'oakd_rgb_camera_optical_frame', rclpy.time.Time()):
+                try:
+                    point_cam = PointStamped()
+                    point_cam.header.stamp = rclpy.time.Time().to_msg()
+                    point_cam.header.frame_id = 'oakd_rgb_camera_optical_frame'
+                    point_cam.point.x = 0.0
+                    point_cam.point.y = 0.0
+                    point_cam.point.z = depth_m
+                    point_map = self.tf_buffer.transform(point_cam, 'map')
+                    self.get_logger().info(f"[CAM] ({point_cam.point.x:.2f}, {point_cam.point.y:.2f}, {point_cam.point.z:.2f}) → [MAP] ({point_map.point.x:.2f}, {point_map.point.y:.2f}, {point_map.point.z:.2f})")
+                    self.publish_marker(point_map.point.x, point_map.point.y, point_map.point.z,)
+                except Exception as e:
+                    self.get_logger().warn(f"TF 변환 실패: {e}")
+        else:
+            depth_text = "N/A"
+            print('no depth')
+        cv2.rectangle(rgb_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.circle(rgb_copy, (cx, cy), 4, (0, 0, 255), -1)
+        cv2.putText(rgb_copy, depth_text, (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+
+#코드 수정
+
+        # results = self.model(rgb_copy)[0]
+        # for box in results.boxes:
+        #     print('객체 탐지됨')
+        #     x1, y1, x2, y2 = map(int, box.xyxy[0])
+        #     cx = int((x1 + x2) / 2)
+        #     cy = int((y1 + y2) / 2)
+        #     if self.depth_img.shape[:2] != self.rgb_img.shape[:2]:
+        #         scale_x = self.depth_img.shape[1] / self.rgb_img.shape[1]
+        #         scale_y = self.depth_img.shape[0] / self.rgb_img.shape[0]
+        #         cx_d = int(cx * scale_x)
+        #         cy_d = int(cy * scale_y)
+        #     else:
+        #         cx_d, cy_d = cx + 10, cy
+        #     if 0 <= cy_d < self.depth_img.shape[0] and 0 <= cx_d < self.depth_img.shape[1]:
+        #         depth_mm = self.depth_img[cy_d, cx_d]
+        #         depth_m = self.correct_depth_linear(depth_mm / 1000.0)
+        #         depth_text = f"{depth_m:.2f}m"
+        #         print('depth_text',depth_text)
+        #         if self.tf_ready and self.tf_buffer.can_transform('map', 'oakd_rgb_camera_optical_frame', rclpy.time.Time()):
+        #             try:
+        #                 point_cam = PointStamped()
+        #                 point_cam.header.stamp = rclpy.time.Time().to_msg()
+        #                 point_cam.header.frame_id = 'oakd_rgb_camera_optical_frame'
+        #                 point_cam.point.x = 0.0
+        #                 point_cam.point.y = 0.0
+        #                 point_cam.point.z = depth_m
+        #                 point_map = self.tf_buffer.transform(point_cam, 'map')
+        #                 self.get_logger().info(f"[CAM] ({point_cam.point.x:.2f}, {point_cam.point.y:.2f}, {point_cam.point.z:.2f}) → [MAP] ({point_map.point.x:.2f}, {point_map.point.y:.2f}, {point_map.point.z:.2f})")
+        #                 self.publish_marker(point_map.point.x, point_map.point.y, point_map.point.z,)
+        #             except Exception as e:
+        #                 self.get_logger().warn(f"TF 변환 실패: {e}")
+        #     else:
+        #         depth_text = "N/A"
+        #         print('no depth')
+        #     cv2.rectangle(rgb_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        #     cv2.circle(rgb_copy, (cx, cy), 4, (0, 0, 255), -1)
+        #     cv2.putText(rgb_copy, depth_text, (x1, y1 - 10),
+        #                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+            
+
+
+
         depth_vis = np.nan_to_num(self.depth_img, nan=0.0)
         depth_vis = np.clip(depth_vis, 0, 3000)
         depth_vis = (depth_vis / 3000 * 255).astype(np.uint8)
@@ -104,8 +166,14 @@ class YOLOWithDepthTF(Node):
         if depth_color.shape != rgb_copy.shape:
             depth_color = cv2.resize(depth_color, (rgb_copy.shape[1], rgb_copy.shape[0]))
         combined = np.hstack((rgb_copy, depth_color))
-        ros_image = self.bridge.cv2_to_imgmsg(combined, encoding="bgr8")
-        self.image_pub.publish(ros_image)
+        # ros_image = self.bridge.cv2_to_imgmsg(combined, encoding="bgr8")
+        msg = String()
+        msg.data = depth_text
+        self.result_pub.publish(msg)
+
+        cv2.imshow("YOLO + Depth View", combined)
+        cv2.waitKey(1)  # 반드시 있어야 OpenCV 윈도우가 갱신됨
+
 def main():
     rclpy.init()
     node = YOLOWithDepthTF()
@@ -121,3 +189,43 @@ def main():
         rclpy.shutdown()
 if __name__ == '__main__':
     main()
+
+# import rclpy
+# from rclpy.node import Node
+# from sensor_msgs.msg import CompressedImage
+# import numpy as np
+# import cv2
+
+# class ImageSubscriber(Node):
+#     def __init__(self):
+#         super().__init__('image_subscriber')
+#         self.subscription = self.create_subscription(
+#             CompressedImage,
+#             '/robot0/oakd/rgb/image_raw/compressed',
+#             self.image_callback,
+#             10)
+#         self.get_logger().info('Image subscriber started.')
+
+#     def image_callback(self, msg):
+#         # 압축된 이미지 데이터를 numpy 배열로 변환
+#         np_arr = np.frombuffer(msg.data, np.uint8)
+#         # OpenCV로 디코딩
+#         image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+#         if image is not None:
+#             self.get_logger().info(f'Image received: shape={image.shape}')
+#             # 이미지 처리 코드 여기에 추가 가능
+#             cv2.imshow('Camera Image', image)
+#             cv2.waitKey(1)
+#         else:
+#             self.get_logger().warn('Failed to decode image')
+
+# def main(args=None):
+#     rclpy.init(args=args)
+#     node = ImageSubscriber()
+#     rclpy.spin(node)
+#     node.destroy_node()
+#     rclpy.shutdown()
+#     cv2.destroyAllWindows()
+
+# if __name__ == '__main__':
+#     main()

@@ -12,6 +12,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/cctv_parking_system.launch.py']),
         ('share/' + package_name + '/emqx', ['turtle_parking_bot/emqx/.env']),  # ✅ 추가
+        ('share/' + package_name + '/model', ['turtle_parking_bot/model/best.pt']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -32,7 +33,8 @@ setup(
             'emqx_pub_use = turtle_parking_bot.emqx.emqx_pub_use:main',
             'turtle2=turtle_parking_bot.turtlebot.turtle2:main',
             'turtle0=turtle_parking_bot.turtlebot.turtle0:main',
-            'canon_node=turtle_parking_bot.turtlebot.canon_node:main'
+            'canon_node=turtle_parking_bot.turtlebot.canon_node:main',
+            'yolodepthtf=turtle_parking_bot.yolowithdepthtf:main'
         ],
     },
 )
