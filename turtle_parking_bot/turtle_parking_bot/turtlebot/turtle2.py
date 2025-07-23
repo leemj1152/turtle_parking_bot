@@ -87,6 +87,8 @@ class ParkingSpotManager(Node):
 
     def reset_signal(self):
         self.signal_received.clear()
+        with self.lock:
+            self.parking_spot = None 
 
 
 # 주차 구역 이름(A1, B2, initial 등)에 따라 PoseStamped 반환
@@ -99,7 +101,7 @@ def load_pose_from_config(spot_name: str) -> PoseStamped:
     if spot_name in ["A1", "A2", "A3"]:
         parking_map = {
             "A1": ((0.00814, 0.615), (0.0, 0.0, 0.67, 0.74)),
-            "A2": ((-0.14, 0.77), (0.0, 0.0, 0.67, 0.74)),
+            "A2": ((-0.16, 0.626), (0.0, 0.0, 0.67, 0.74)),
             "A3": ((-0.8, 0.5), (0.0, 0.0, 0.67, 0.74)),
         }
         pos, ori = parking_map[spot_name]
@@ -329,13 +331,48 @@ class TurtleBotController:
                 return False
 
         try:
+            spot_name = None
+            with self.parking_manager.lock:
+                # spot_name 추정 (pose 기반이므로 정확하진 않음, 추가 구조 필요시 개선)
+                for name in ["A1", "A2", "A3"]:
+                    test_pose = load_pose_from_config(name)
+                    if test_pose and test_pose.pose.position.x == parking_pose.pose.position.x:
+                        spot_name = name
+                        break
+
+            if spot_name in ["A1", "A2", "A3"]:
+                print(f"🛣️ {spot_name} 경유지 → 주차지점으로 이동")
+
+                # === 1단계: waypoint 이동 ===
+                waypoint_pose = PoseStamped()
+                waypoint_pose.header.frame_id = 'map'
+                waypoint_pose.header.stamp = self.parking_manager.get_clock().now().to_msg()
+
+                # ✅ 사용자 지정 (임의로 수정 가능)
+                waypoint_pose.pose.position.x = -1.1
+                waypoint_pose.pose.position.y = 0.8
+                waypoint_pose.pose.position.z = 0.0
+                waypoint_pose.pose.orientation.w = 1.0  # 단순한 정면
+
+                print("📍 경유지로 먼저 이동 중...")
+                self.navigator.goToPose(waypoint_pose)
+                success = self.wait_for_navigation_complete(timeout=60, action_name="경유지 이동")
+                if not success:
+                    print("❌ 경유지 이동 실패")
+                    return False
+
+                time.sleep(1)
+
+            # === 2단계: 최종 주차 위치 이동 ===
             parking_pose.header.stamp = self.parking_manager.get_clock().now().to_msg()
-            print(f"주차 위치로 이동: x={parking_pose.pose.position.x:.2f}, y={parking_pose.pose.position.y:.2f}")
+            print(f"🚗 주차 위치로 이동: x={parking_pose.pose.position.x:.2f}, y={parking_pose.pose.position.y:.2f}")
             self.navigator.goToPose(parking_pose)
             return self.wait_for_navigation_complete(timeout=120, action_name="주차 이동")
+
         except Exception as e:
             print(f"주차 위치 이동 실패: {e}")
             return False
+
 
     def go_to_pre_dock(self):
         try:
@@ -392,6 +429,58 @@ class TurtleBotController:
             self.executor_thread.join(timeout=2)
 
 
+# def main():
+#     def signal_handler(signum, frame):
+#         print("\n종료 신호 수신")
+#         if 'controller' in locals():
+#             controller.shutdown()
+#         rclpy.shutdown()
+#         sys.exit(0)
+
+#     signal.signal(signal.SIGINT, signal_handler)
+#     rclpy.init()
+
+#     controller = TurtleBotController()
+
+#     try:
+#         if not controller.initialize():
+#             return
+
+#         if not controller.wait_for_start_signal(timeout=300):
+#             print("시작 신호 수신 실패")
+#             return
+
+#         print("로봇 동작 시퀀스 시작")
+        
+#         controller.set_initial_pose()
+#         controller.wait_nav2_active()
+        
+#         # controller.start_music()  # 소리 나옴
+#         time.sleep(1)
+        
+#         controller.undock()
+#         time.sleep(2)
+        
+#         if not controller.go_to_parking_spot():
+#             controller.stop_music()
+#             return
+            
+#         print("주차 완료! 충전 스테이션으로 복귀")
+#         time.sleep(5)
+        
+#         controller.go_to_pre_dock()
+#         controller.stop_music()
+#         time.sleep(1)
+        
+#         controller.dock()
+#         print("모든 작업 완료")
+            
+#     except Exception as e:
+#         print(f"오류 발생: {e}")
+#     finally:
+#         controller.shutdown()
+#         rclpy.shutdown()
+
 def main():
     def signal_handler(signum, frame):
         print("\n종료 신호 수신")
@@ -409,41 +498,45 @@ def main():
         if not controller.initialize():
             return
 
-        if not controller.wait_for_start_signal(timeout=300):
-            print("시작 신호 수신 실패")
-            return
-
-        print("로봇 동작 시퀀스 시작")
-        
         controller.set_initial_pose()
         controller.wait_nav2_active()
-        
-        # controller.start_music()  # 소리 나옴
-        time.sleep(1)
-        
-        controller.undock()
-        time.sleep(2)
-        
-        if not controller.go_to_parking_spot():
+
+        while rclpy.ok():
+            print("\n📥 [대기] start 메시지 수신 대기 중...")
+            if not controller.wait_for_start_signal(timeout=600):  # 10분 대기
+                print("⚠️ 시작 신호를 받지 못했습니다. 다시 대기합니다.")
+                continue
+
+            controller.parking_manager.reset_signal()  # 메시지 플래그 리셋
+            print("\n🚗 주차 루틴 시작")
+
+            time.sleep(1)
+            controller.undock()
+            time.sleep(2)
+
+            if not controller.go_to_parking_spot():
+                controller.stop_music()
+                print("❌ 주차 실패")
+                continue  # 다음 start 대기
+
+            print("✅ 주차 완료, 도킹 복귀 시작")
+            time.sleep(3)
+
+            controller.go_to_pre_dock()
             controller.stop_music()
-            return
-            
-        print("주차 완료! 충전 스테이션으로 복귀")
-        time.sleep(5)
-        
-        controller.go_to_pre_dock()
-        controller.stop_music()
-        time.sleep(1)
-        
-        controller.dock()
-        print("모든 작업 완료")
-            
+            time.sleep(1)
+
+            controller.dock()
+            print("✅ 도킹 완료")
+
+            # 다음 start 메시지를 기다리도록 루프 계속
+            time.sleep(2)
+
     except Exception as e:
-        print(f"오류 발생: {e}")
+        print(f"🚨 오류 발생: {e}")
     finally:
         controller.shutdown()
         rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

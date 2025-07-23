@@ -24,20 +24,20 @@ class CanonNode(Node):
 
         # 캐논 멜로디
         self.canon_melody = [
-            (self.SOL5, 0.6), (self.MI5, 0.3), (self.FA5, 0.3), (self.SOL5, 0.6),
-            (self.MI5, 0.3), (self.FA5, 0.3), (self.SOL5, 0.3), (self.SI4, 0.3),
-            (self.LA4, 0.3), (self.SI4, 0.3), (self.DO5, 0.3), (self.RE5, 0.3),
-            (self.MI5, 0.3), (self.FA5, 0.3), (self.MI5, 0.6), (self.DO5, 0.3),
-            (self.RE5, 0.3), (self.MI5, 0.6), (self.MI4, 0.3), (self.FA4, 0.3),
-            (self.SOL4, 0.3), (self.LA4, 0.3), (self.SOL4, 0.3), (self.FA4, 0.3),
-            (self.SOL4, 0.3), (self.DO5, 0.3), (self.SI4, 0.3), (self.DO5, 0.3),
-            (self.LA4, 0.6), (self.DO5, 0.3), (self.SI4, 0.3), (self.LA4, 0.6),
-            (self.SOL4, 0.3), (self.FA4, 0.3), (self.SOL4, 0.3), (self.FA4, 0.3),
-            (self.MI4, 0.3), (self.FA4, 0.3), (self.SOL4, 0.3), (self.LA4, 0.3),
-            (self.SI4, 0.3), (self.DO5, 0.3), (self.LA4, 0.6), (self.DO5, 0.3),
-            (self.SI4, 0.3), (self.DO5, 0.6), (self.SI4, 0.3), (self.DO5, 0.3),
-            (self.SI4, 0.3), (self.LA4, 0.3), (self.SI4, 0.3), (self.DO5, 0.3),
-            (self.RE5, 0.3), (self.MI5, 0.3), (self.FA5, 0.3), (self.SOL5, 1.0),
+            (self.SOL5, 0.8), (self.MI5, 0.4), (self.FA5, 0.4), (self.SOL5, 0.8),
+            (self.MI5, 0.4), (self.FA5, 0.4), (self.SOL5, 0.4), (self.SI4, 0.4),
+            (self.LA4, 0.4), (self.SI4, 0.4), (self.DO5, 0.4), (self.RE5, 0.4),
+            (self.MI5, 0.4), (self.FA5, 0.4), (self.MI5, 0.4), (self.DO5, 0.4),
+            (self.RE5, 0.4), (self.MI5, 0.8), (self.MI4, 0.4), (self.FA4, 0.4),
+            (self.SOL4, 0.4), (self.LA4, 0.4), (self.SOL4, 0.4), (self.FA4, 0.4),
+            (self.SOL4, 0.4), (self.DO5, 0.4), (self.SI4, 0.4), (self.DO5, 0.4),
+            (self.LA4, 0.8), (self.DO5, 0.4), (self.SI4, 0.4), (self.LA4, 0.8),
+            (self.SOL4, 0.4), (self.FA4, 0.4), (self.SOL4, 0.4), (self.FA4, 0.4),
+            (self.MI4, 0.4), (self.FA4, 0.4), (self.SOL4, 0.4), (self.LA4, 0.4),
+            (self.SI4, 0.4), (self.DO5, 0.4), (self.LA4, 0.8), (self.DO5, 0.4),
+            (self.SI4, 0.4), (self.DO5, 0.8), (self.SI4, 0.4), (self.DO5, 0.4),
+            (self.SI4, 0.4), (self.LA4, 0.4), (self.SI4, 0.4), (self.DO5, 0.4),
+            (self.RE5, 0.4), (self.MI5, 0.4), (self.FA5, 0.4), (self.SOL5, 1.0),
         ]
 
         # 고정된 타이머 생성 (0.1초마다 체크)
